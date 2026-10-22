@@ -23,3 +23,6 @@ budget:
   max_usd_per_video: 2.0
 notify:
   method: gmail_api       # gmail_api | smtp | none
+instagram:
+  enabled: false          # publish the video as an Instagram Reel (needs video.orientation: portrait)
+  share_to_feed: true

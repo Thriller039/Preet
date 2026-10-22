@@ -3,7 +3,7 @@ import datetime as dt
 import logging
 from pathlib import Path
 
-from . import edit, music, notify, script_stage, visuals, voice, youtube
+from . import edit, instagram, music, notify, script_stage, visuals, voice, youtube
 from .config import ROOT
 from .util import Budget, read_json, retry, write_json
 
@@ -63,10 +63,22 @@ class Run:
                            self.state["edit"]["thumbnail"])
         return r
 
+    def s_instagram(self):
+        if self.dry_run or not self.cfg["instagram"]["enabled"]:
+            return {"skipped": "disabled or dry-run"}
+        if self.cfg["upload"]["require_approval"] and not self.state.get("approved"):
+            return {"skipped": "awaiting approval"}
+        if self.cfg["video"]["orientation"] != "portrait":
+            return {"skipped": "Reels need video.orientation: portrait"}
+        return instagram.publish_reel(self.cfg, self.state["metadata"], self.state["edit"]["video"])
+
     def s_notify(self):
         up, meta = self.state.get("upload", {}), self.state["metadata"]
+        ig = self.state.get("instagram", {})
         if "url" in up:
             subject, body = f"Uploaded: {meta['title']}", f"Video: {up['url']}\nCost: ${self.budget.spent:.2f}"
+            if ig.get("url"):
+                body += f"\nInstagram: {ig['url']}"
         else:
             subject = f"Draft ready ({up.get('skipped')}): {meta['title']}"
             body = f"File: {self.state['edit']['video']}\nRun with --approve {self.day} to publish."
@@ -76,7 +88,7 @@ class Run:
 
     STAGES = [("script", "s_script"), ("scenes", "s_scenes"), ("images", "s_images"), ("voice", "s_voice"),
               ("music", "s_music"), ("edit", "s_edit"), ("metadata", "s_metadata"),
-              ("upload", "s_upload"), ("notify", "s_notify")]
+              ("upload", "s_upload"), ("instagram", "s_instagram"), ("notify", "s_notify")]
 
     def run(self, only=None):
         r = self.cfg["retries"]
@@ -111,7 +123,7 @@ def run_daily(cfg, day=None, dry_run=False, force=False, approve=False, stage=No
     try:
         if approve:
             run.state["approved"] = True
-            for k in ("upload", "notify"):
+            for k in ("upload", "instagram", "notify"):
                 run.state.pop(k, None)
         return run.run(stage)
     except Exception as e:  # noqa: BLE001

@@ -34,3 +34,6 @@ Safety and cost: scripts go through schema validation and a keyword safety check
 
 ## Tests
 `python -m pytest tests`
+
+## Instagram Reels (short anime videos)
+Set `video.orientation: portrait` and `instagram.enabled: true` in `config.yaml`, then set `INSTAGRAM_ACCESS_TOKEN` and `INSTAGRAM_USER_ID` (an Instagram professional account linked to a Facebook app with the `instagram_content_publish` permission). After the YouTube upload, the `instagram` stage publishes the same video as a Reel (honouring `--dry-run` and `upload.require_approval`).

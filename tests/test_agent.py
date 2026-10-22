@@ -77,3 +77,30 @@ def test_mock_pipeline_end_to_end(tmp_path):
     st = r.run()
     assert (tmp_path / "2030-01-01" / "final.mp4").stat().st_size > 0
     assert st["upload"]["skipped"] == "dry-run"
+
+
+def test_instagram_reel_publish():
+    from agent import instagram
+    import os
+
+    class R:
+        def __init__(s, j): s.j = j
+        def raise_for_status(s): pass
+        def json(s): return s.j
+
+    class S:
+        def __init__(s): s.calls = []
+        def post(s, url, **kw):
+            s.calls.append(url)
+            return R({"id": "m1"} if "media_publish" in url else {"id": "c1"})
+        def get(s, url, **kw):
+            return R({"status_code": "FINISHED"} if url.endswith("c1") else {"permalink": "https://instagram.com/reel/x"})
+
+    os.environ.update(INSTAGRAM_ACCESS_TOKEN="t", INSTAGRAM_USER_ID="u")
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=".mp4") as f:
+        f.write(b"x"); f.flush()
+        cfg = load_config()
+        r = instagram.publish_reel(cfg, {"title": "t", "description": "d", "tags": ["a b"]}, f.name, S(), lambda s: None)
+    assert r == {"media_id": "m1", "url": "https://instagram.com/reel/x"}
+    assert instagram.build_caption({"title": "t", "description": "d", "tags": ["a b"]}).endswith("#ab")

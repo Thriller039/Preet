@@ -24,6 +24,7 @@ DEFAULTS = {
     "work_dir": "work",
     "upload": {"privacy": "private", "category_id": "1", "made_for_kids": False,
                "publish_at": None, "require_approval": False},
+    "instagram": {"enabled": False, "share_to_feed": True, "poll_attempts": 30, "poll_delay": 10},
     "budget": {"max_usd_per_video": 2.0, "text_usd_per_call": 0.01,
                "image_usd_each": 0.10, "tts_usd_per_1k_chars": 0.015},
     "retries": {"attempts": 3, "base_delay": 2.0},
