@@ -1,0 +1,1 @@
+"""Daily anime YouTube agent."""

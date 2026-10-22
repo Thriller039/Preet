@@ -29,3 +29,10 @@ game28.dta
 
 # Log files
 warnings.log
+
+# Agent
+work/
+.env
+client_secret.json
+__pycache__/
+.pytest_cache/
