@@ -1,0 +1,37 @@
+name: Daily anime video
+on:
+  schedule:
+    - cron: "0 14 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build only, do not upload"
+        type: boolean
+        default: true
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: pip install -r requirements.txt
+      - name: Run agent
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          NOTIFY_TO: ${{ secrets.NOTIFY_TO }}
+        run: python -m agent.run_daily ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '--dry-run' || '' }}
+      - name: Commit story history
+        run: |
+          git config user.name "anime-agent"; git config user.email "anime-agent@users.noreply.github.com"
+          git add data/history.json; git diff --cached --quiet || (git commit -m "Update episode history" && git push)
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: video, path: "work/*/final.mp4", if-no-files-found: ignore}

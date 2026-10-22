@@ -1,0 +1,25 @@
+# Settings only. Secrets (API keys, tokens) go in environment variables - see .env.example
+provider: openai          # openai | mock (offline test mode)
+channel:
+  name: My Anime Channel
+  language: English
+  style: cinematic anime, vibrant colors, detailed backgrounds
+video:
+  orientation: landscape  # landscape (1920x1080) | portrait (1080x1920, Shorts)
+  scenes: 6
+  target_seconds: 120
+  fps: 30
+models:
+  text: gpt-4o-mini
+  image: gpt-image-1
+  tts: gpt-4o-mini-tts
+music_dir: assets/music   # files named like "epic_01.mp3", matched by mood
+sfx_dir: assets/sfx       # files named like "wind.mp3", matched by sfx tag
+upload:
+  privacy: private        # unverified API projects are forced private anyway
+  require_approval: false
+  publish_at: null        # e.g. 2026-01-01T15:00:00Z (schedules a private video)
+budget:
+  max_usd_per_video: 2.0
+notify:
+  method: gmail_api       # gmail_api | smtp | none
