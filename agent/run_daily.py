@@ -1,6 +1,7 @@
 """CLI entry point: python -m agent.run_daily [--dry-run] [--force] [--approve] [--day D] [--stage S]"""
 import argparse
 import logging
+import os
 
 from .config import load_config
 from .pipeline import Run, run_daily
@@ -18,7 +19,11 @@ def main(argv=None):
     a = p.parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if a.verbose else logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s")
-    state = run_daily(load_config(a.config), a.day, a.dry_run, a.force, a.approve, a.stage)
+    cfg = load_config(a.config)
+    if a.dry_run and cfg["provider"] == "openai" and not os.environ.get("OPENAI_API_KEY"):
+        logging.warning("OPENAI_API_KEY not set; using mock provider for dry run")
+        cfg.data["provider"] = "mock"
+    state = run_daily(cfg, a.day, a.dry_run, a.force, a.approve, a.stage)
     print("Done:", state.get("upload", {}))
 
 
