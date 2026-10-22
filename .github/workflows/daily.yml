@@ -27,7 +27,14 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
           NOTIFY_TO: ${{ secrets.NOTIFY_TO }}
-        run: python -m agent.run_daily ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '--dry-run' || '' }}
+        run: |
+          ARGS="${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '--dry-run' || '' }}"
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "::warning::OPENAI_API_KEY secret is not set; running offline with the mock provider (dry run)."
+            sed 's/^provider:.*/provider: mock/' config.yaml > "$RUNNER_TEMP/config.yaml"
+            ARGS="--dry-run --config $RUNNER_TEMP/config.yaml"
+          fi
+          python -m agent.run_daily $ARGS
       - name: Commit story history
         run: |
           git config user.name "anime-agent"; git config user.email "anime-agent@users.noreply.github.com"
