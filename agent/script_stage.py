@@ -13,6 +13,15 @@ SYSTEM = """You are a professional anime writer for a YouTube channel. Return JS
              "mood": "calm|epic|sad|tense|happy|mysterious", "sfx": [str]}]}
 Keep it family-friendly. Every scene's visual_prompt must restate the appearance of characters present."""
 
+ADAPT_SYSTEM = """Adapt the supplied script into an anime video plan. Return JSON only:
+{"title": str, "synopsis": str, "episode_summary": str,
+ "characters": [{"name": str, "appearance": str (fixed, detailed visual description), "voice_gender": "male|female|neutral"}],
+ "scenes": [{"visual_prompt": str, "narration": str, "dialogue": [{"character": str, "line": str}],
+             "mood": "calm|epic|sad|tense|happy|mysterious", "sfx": [str]}]}
+Preserve the script's plot and dialogue. Split it into clear scenes, retain dialogue as dialogue, and use narration for other spoken text.
+Add concise visual details suitable for anime illustrations, keeping each character's appearance consistent in every scene.
+Do not add unrelated plot or characters. Keep it family-friendly."""
+
 
 def bible_and_history(cfg):
     b = ROOT / cfg["story_bible"]
@@ -33,8 +42,33 @@ def mock_script(cfg):
                         "mood": "mysterious", "sfx": ["wind"]} for i in range(n)]}
 
 
-def make_script(cfg, budget):
-    if cfg["provider"] == "mock":
+def make_script(cfg, budget, source_text=None):
+    if source_text is not None:
+        if not source_text.strip():
+            raise ValueError("script must not be empty")
+        if cfg["provider"] == "mock":
+            paragraphs = [part.strip() for part in source_text.splitlines() if part.strip()]
+            paragraphs = paragraphs or [source_text.strip()]
+            script = {
+                "title": "Script Adaptation",
+                "synopsis": paragraphs[0][:300],
+                "episode_summary": paragraphs[0][:300],
+                "characters": [],
+                "scenes": [{
+                    "visual_prompt": f"Anime adaptation of this script moment: {part[:500]}",
+                    "narration": part,
+                    "dialogue": [],
+                    "mood": "calm",
+                    "sfx": [],
+                } for part in paragraphs],
+            }
+        else:
+            user = (f"Channel: {cfg['channel']['name']}. Language: {cfg['channel']['language']}.\n"
+                    f"Style: {cfg['channel']['style']}.\n"
+                    f"Adapt this supplied script into about {cfg['video']['scenes']} scenes "
+                    f"for a video of about {cfg['video']['target_seconds']} seconds:\n\n{source_text}")
+            script = chat_json(cfg, budget, ADAPT_SYSTEM, user)
+    elif cfg["provider"] == "mock":
         script = mock_script(cfg)
     else:
         bible, history = bible_and_history(cfg)
