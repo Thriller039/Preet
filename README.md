@@ -23,7 +23,9 @@ python -m agent.run_daily --dry-run     # build the video, no upload/email
 python -m agent.run_daily               # full run
 python -m agent.run_daily --approve --day 2026-01-01   # publish an approved draft
 python -m agent.run_daily --stage edit --force         # re-run one stage
+python -m agent.run_daily --script path/to/script.txt --dry-run  # adapt your script into a video
 ```
+Without `--script`, the agent writes an original story as before. Supplied plain-text scripts are adapted into scenes, visuals, narration, and dialogue before the video is built.
 Set `provider: mock` in `config.yaml` to test the whole pipeline offline without API calls.
 With `upload.require_approval: true` the agent emails you the draft and waits for `--approve`.
 

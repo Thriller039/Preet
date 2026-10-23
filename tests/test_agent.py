@@ -3,7 +3,7 @@ import pytest
 from agent import schema, voice
 from agent.config import load_config
 from agent.notify import build_message
-from agent.script_stage import mock_script
+from agent.script_stage import ADAPT_SYSTEM, make_script, mock_script
 from agent.util import Budget, BudgetExceeded, retry
 from agent.youtube import build_body
 
@@ -17,6 +17,29 @@ def test_script_valid_and_invalid():
         schema.validate_script(s)
     with pytest.raises(schema.ValidationError):
         schema.validate_script({"title": "x"})
+
+
+def test_supplied_script_adaptation(monkeypatch):
+    cfg = load_config(); cfg.data["provider"] = "openai"
+    source = "Mika enters the shrine. The lantern begins to glow."
+    expected = mock_script(cfg)
+    calls = []
+
+    def adapt(*args):
+        calls.append(args)
+        return expected
+
+    monkeypatch.setattr("agent.script_stage.chat_json", adapt)
+    assert make_script(cfg, Budget(1), source) is expected
+    assert calls[0][2] == ADAPT_SYSTEM
+    assert source in calls[0][3]
+
+
+def test_mock_script_adaptation():
+    cfg = load_config(); cfg.data["provider"] = "mock"
+    script = make_script(cfg, Budget(1), "A lantern glows.\nThe fox follows.")
+    assert [scene["narration"] for scene in script["scenes"]] == [
+        "A lantern glows.", "The fox follows."]
 
 
 def test_safety_blocks():
