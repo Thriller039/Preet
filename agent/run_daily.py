@@ -1,6 +1,7 @@
 """CLI entry point: python -m agent.run_daily [--dry-run] [--force] [--approve] [--day D] [--stage S]"""
 import argparse
 import logging
+from pathlib import Path
 
 from .config import load_config
 from .pipeline import Run, run_daily
@@ -14,11 +15,15 @@ def main(argv=None):
     p.add_argument("--approve", action="store_true", help="publish an existing draft for --day")
     p.add_argument("--day", default=None, help="YYYY-MM-DD working folder (default today)")
     p.add_argument("--stage", choices=[n for n, _ in Run.STAGES], help="re-run only this stage")
+    p.add_argument("--script", type=Path, help="adapt a plain-text script file into a video")
     p.add_argument("-v", "--verbose", action="store_true")
     a = p.parse_args(argv)
+    script_text = a.script.read_text() if a.script else None
+    if script_text is not None and not script_text.strip():
+        p.error("--script file must not be empty")
     logging.basicConfig(level=logging.DEBUG if a.verbose else logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s")
-    state = run_daily(load_config(a.config), a.day, a.dry_run, a.force, a.approve, a.stage)
+    state = run_daily(load_config(a.config), a.day, a.dry_run, a.force, a.approve, a.stage, script_text)
     print("Done:", state.get("upload", {}))
 
 

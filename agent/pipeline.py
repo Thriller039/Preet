@@ -1,5 +1,6 @@
 """Stage runner with per-day workdir, checkpoints (resume), retries and cost cap."""
 import datetime as dt
+import hashlib
 import logging
 from pathlib import Path
 
@@ -11,18 +12,28 @@ log = logging.getLogger("agent")
 
 
 class Run:
-    def __init__(self, cfg, day=None, dry_run=False, force=False):
+    def __init__(self, cfg, day=None, dry_run=False, force=False, script_text=None):
         self.cfg, self.dry_run = cfg, dry_run
+        self.script_text = script_text
         self.day = day or dt.date.today().isoformat()
         self.dir = ROOT / cfg["work_dir"] / self.day
         self.dir.mkdir(parents=True, exist_ok=True)
         self.state_file = self.dir / "state.json"
         self.state = {} if force else read_json(self.state_file, {})
+        if script_text is not None:
+            source_hash = hashlib.sha256(script_text.encode()).hexdigest()
+            if self.state.get("_source_script_hash") != source_hash:
+                self.state = {"_source_script_hash": source_hash}
+                for pattern in ("scene_*.png", "scene_*.wav", "voice_*.mp3", "clip_*.mp4", "list_*.txt"):
+                    for path in self.dir.glob(pattern):
+                        path.unlink()
+                for name in ("subs.srt", "clips.txt", "base.mp4", "final.mp4", "thumbnail.jpg"):
+                    (self.dir / name).unlink(missing_ok=True)
         self.budget = Budget(cfg["budget"]["max_usd_per_video"])
 
     # ---- stages: each takes the run and returns a JSON-serialisable result ----
     def s_script(self):
-        return script_stage.make_script(self.cfg, self.budget)
+        return script_stage.make_script(self.cfg, self.budget, self.script_text)
 
     def s_scenes(self):
         sc = self.state["script"]
@@ -106,8 +117,8 @@ class Run:
             write_json(hp, hist)
 
 
-def run_daily(cfg, day=None, dry_run=False, force=False, approve=False, stage=None):
-    run = Run(cfg, day, dry_run, force)
+def run_daily(cfg, day=None, dry_run=False, force=False, approve=False, stage=None, script_text=None):
+    run = Run(cfg, day, dry_run, force, script_text)
     try:
         if approve:
             run.state["approved"] = True
