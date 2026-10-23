@@ -42,6 +42,14 @@ def test_mock_script_adaptation():
         "A lantern glows.", "The fox follows."]
 
 
+def test_run_adapts_supplied_script(tmp_path):
+    from agent.pipeline import Run
+
+    cfg = load_config(); cfg.data["provider"] = "mock"; cfg.data["work_dir"] = str(tmp_path)
+    run = Run(cfg, "2030-01-01", dry_run=True, script_text="A lantern glows.")
+    assert run.s_script()["scenes"][0]["narration"] == "A lantern glows."
+
+
 def test_safety_blocks():
     cfg = load_config(); cfg.data["provider"] = "mock"
     s = mock_script(cfg); s["scenes"][0]["narration"] = "so much gore"
